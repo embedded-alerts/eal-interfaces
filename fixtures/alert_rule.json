@@ -1,0 +1,12 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "title": "Example AlertRule",
+  "summary": "Embedding-based alerting for semantically relevant new information.",
+  "status": "draft",
+  "created_at": "2026-08-04T12:00:00Z",
+  "updated_at": "2026-08-04T12:00:00Z",
+  "query": "Rust WebSocket reliability",
+  "threshold": 0.82,
+  "delivery_channel": "email",
+  "enabled": true
+}

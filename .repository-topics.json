@@ -1,0 +1,12 @@
+[
+  "alerts",
+  "asyncapi",
+  "eal",
+  "embeddings",
+  "json-schema",
+  "openapi",
+  "pgvector",
+  "postgresql",
+  "rust",
+  "semantic-search"
+]

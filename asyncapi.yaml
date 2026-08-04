@@ -1,0 +1,31 @@
+asyncapi: 3.0.0
+info:
+  title: Embedded Alerts events
+  version: 0.1.0
+servers:
+  local:
+    host: localhost:8080
+    protocol: ws
+channels:
+  updates:
+    address: /ws
+    messages:
+      AlertRuleChanged:
+        $ref: '#/components/messages/AlertRuleChanged'
+operations:
+  receiveChanges:
+    action: receive
+    channel:
+      $ref: '#/channels/updates'
+components:
+  messages:
+    AlertRuleChanged:
+      payload:
+        type: object
+        required: [event_id, event_type, occurred_at, data]
+        properties:
+          event_id: { type: string, format: uuid }
+          event_type: { type: string }
+          occurred_at: { type: string, format: date-time }
+          data:
+            $ref: './schemas/alert_rule.json'

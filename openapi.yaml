@@ -1,0 +1,74 @@
+openapi: 3.1.0
+info:
+  title: Embedded Alerts API
+  version: 0.1.0
+  description: "Define semantic alert rules, ingest source documents, compare embeddings, rank matches, and deliver explainable notifications."
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: service is alive
+  /api/v1/alert-rules:
+    get:
+      operationId: listAlertRules
+      responses:
+        '200':
+          description: bounded list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertRule'
+    post:
+      operationId: createAlertRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRule'
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+        '422':
+          description: validation failure
+  /api/v1/alert-rules/{id}:
+    get:
+      operationId: getAlertRule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+        '404': { description: not found }
+  /ws:
+    get:
+      operationId: websocket
+      responses:
+        '101': { description: WebSocket upgrade }
+components:
+  schemas:
+    AlertRule:
+      $ref: './schemas/alert_rule.json'
+    CreateAlertRule:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 256 }
+        summary: { type: string, maxLength: 4000 }
