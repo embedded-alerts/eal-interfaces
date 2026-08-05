@@ -1,0 +1,19 @@
+[package]
+org = "embedded-alerts"
+name = "eal-interfaces"
+version = "0.1.0"
+description = "Canonical Rust, JSON Schema, OpenAPI, AsyncAPI, and PostgreSQL contracts for Embedded Alerts"
+license = "MIT"
+language = "polyglot"
+
+[package.repository]
+vcs = "git"
+url = "https://github.com/embedded-alerts/eal-interfaces"
+
+[publish]
+include_readme = true
+tag_format = "v{version}"
+exclude = [".env", ".env.*", "node_modules/**", "target/**", "dist/**", "*.log"]
+
+[targets.repository]
+dir = "."
