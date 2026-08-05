@@ -1,0 +1,12 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "eal-interfaces events",
+    "version": "0.1.0"
+  },
+  "channels": {
+    "events": {
+      "address": "embedded-alerts.events"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "bootstrap_date": "20260804",
+  "kind": "interfaces",
+  "organization": "embedded-alerts",
+  "repository": "eal-interfaces",
+  "required_paths": [
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    "asyncapi/asyncapi.json",
+    "openapi/openapi.json",
+    "schemas/event.schema.json",
+    "scripts/verify_repo.py"
+  ],
+  "schema_version": 1,
+  "tracking_issue": "DEN-1949",
+  "visibility": "public"
+}
