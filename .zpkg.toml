@@ -4,7 +4,7 @@ name = "eal-interfaces"
 version = "0.1.0"
 description = "Shared interfaces and schemas for Embedded Alerts"
 license = "MIT"
-language = "polyglot"
+language = "universal"
 
 [package.repository]
 vcs = "git"
