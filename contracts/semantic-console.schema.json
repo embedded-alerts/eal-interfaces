@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.dev/contracts/semantic-console.schema.json",
+  "title": "Embedded Alerts semantic console API",
+  "description": "Vector-free browser and SDK contracts for domain-scoped semantic alerting. Raw embedding values are intentionally absent.",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "DiscoveryMode": {
+      "type": "string",
+      "enum": ["seed", "robots_sitemap", "conventional_sitemap", "feed", "same_domain_link", "external_index"]
+    },
+    "SourceStatus": {
+      "type": "string",
+      "enum": ["ready", "scanning", "paused", "rejected", "failed"]
+    },
+    "CandidateState": {
+      "type": "string",
+      "enum": ["candidate", "approved", "suppressed", "dismissed", "delivered", "failed"]
+    },
+    "SemanticInputKind": {
+      "type": "string",
+      "enum": ["title", "heading", "summary", "sentence", "entity", "keyword", "url_signal", "document", "query"]
+    },
+    "DomainSourceCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "include_subdomains", "respect_robots", "discovery_modes", "page_budget", "priority"],
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "pattern": "^[A-Za-z0-9.-]+$",
+          "description": "A DNS host only. IP literals, localhost/internal names, URL credentials, and schemes are rejected server-side."
+        },
+        "include_subdomains": {"type": "boolean"},
+        "respect_robots": {"const": true},
+        "seed_urls": {
+          "type": "array",
+          "maxItems": 200,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri", "maxLength": 2048}
+        },
+        "discovery_modes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/DiscoveryMode"}
+        },
+        "page_budget": {"type": "integer", "minimum": 1, "maximum": 5000},
+        "priority": {"type": "integer", "minimum": 0, "maximum": 100},
+        "enabled": {"type": "boolean", "default": true}
+      }
+    },
+    "DomainSourceSummary": {
+      "allOf": [
+        {"$ref": "#/$defs/DomainSourceCreate"},
+        {
+          "type": "object",
+          "required": ["id", "status", "indexed_pages", "created_at", "updated_at"],
+          "properties": {
+            "id": {"$ref": "#/$defs/Identifier"},
+            "status": {"$ref": "#/$defs/SourceStatus"},
+            "indexed_pages": {"type": "integer", "minimum": 0},
+            "last_scan_at": {"anyOf": [{"$ref": "#/$defs/Timestamp"}, {"type": "null"}]},
+            "last_rejection_code": {"type": ["string", "null"], "maxLength": 120},
+            "created_at": {"$ref": "#/$defs/Timestamp"},
+            "updated_at": {"$ref": "#/$defs/Timestamp"}
+          }
+        }
+      ]
+    },
+    "AlertRuleRevisionCreate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "query_text", "threshold", "source_ids"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+        "query_text": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 700,
+          "description": "Complete natural-language interest statement. The server owns query decomposition and embeddings."
+        },
+        "threshold": {"$ref": "#/$defs/Score"},
+        "source_ids": {
+          "type": "array",
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/Identifier"}
+        },
+        "enabled": {"type": "boolean", "default": true}
+      }
+    },
+    "AlertRuleRevisionSummary": {
+      "allOf": [
+        {"$ref": "#/$defs/AlertRuleRevisionCreate"},
+        {
+          "type": "object",
+          "required": ["rule_id", "revision_id", "revision", "embedding_space_id", "created_at"],
+          "properties": {
+            "rule_id": {"$ref": "#/$defs/Identifier"},
+            "revision_id": {"$ref": "#/$defs/Identifier"},
+            "revision": {"type": "integer", "minimum": 1},
+            "embedding_space_id": {"$ref": "#/$defs/Identifier"},
+            "candidate_count": {"type": "integer", "minimum": 0},
+            "created_at": {"$ref": "#/$defs/Timestamp"}
+          }
+        }
+      ]
+    },
+    "SemanticTextView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ordinal", "text", "weight"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/SemanticInputKind"},
+        "ordinal": {"type": "integer", "minimum": 0, "maximum": 95},
+        "text": {"type": "string", "minLength": 1, "maxLength": 700},
+        "weight": {"type": "number", "minimum": 0.1, "maximum": 2}
+      }
+    },
+    "QueryPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_text", "views", "keywords", "entities", "vector_values_exposed"],
+      "properties": {
+        "query_text": {"type": "string", "minLength": 3, "maxLength": 700},
+        "views": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 96,
+          "items": {"$ref": "#/$defs/SemanticTextView"}
+        },
+        "keywords": {
+          "type": "array",
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 120}
+        },
+        "entities": {
+          "type": "array",
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        },
+        "vector_values_exposed": {"const": false}
+      }
+    },
+    "ScoreComponents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["semantic", "lexical", "entity", "recency", "source_priority"],
+      "properties": {
+        "semantic": {"$ref": "#/$defs/Score"},
+        "lexical": {"$ref": "#/$defs/Score"},
+        "entity": {"$ref": "#/$defs/Score"},
+        "recency": {"$ref": "#/$defs/Score"},
+        "source_priority": {"$ref": "#/$defs/Score"}
+      }
+    },
+    "MatchEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["best_sentence", "entities", "keywords", "input_kinds"],
+      "properties": {
+        "best_sentence": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "title": {"type": ["string", "null"], "maxLength": 700},
+        "heading": {"type": ["string", "null"], "maxLength": 700},
+        "entities": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 200}
+        },
+        "keywords": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 120}
+        },
+        "input_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/SemanticInputKind"}
+        }
+      }
+    },
+    "MatchCandidateSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rule_id", "rule_revision_id", "page_revision_id", "canonical_url", "source_domain", "overall_score", "components", "evidence", "state", "embedding_space_id", "content_sha256", "discovered_at", "created_at", "vector_values_exposed"],
+      "properties": {
+        "id": {"$ref": "#/$defs/Identifier"},
+        "rule_id": {"$ref": "#/$defs/Identifier"},
+        "rule_revision_id": {"$ref": "#/$defs/Identifier"},
+        "page_revision_id": {"$ref": "#/$defs/Identifier"},
+        "page_title": {"type": ["string", "null"], "maxLength": 700},
+        "canonical_url": {"type": "string", "format": "uri", "maxLength": 2048},
+        "source_domain": {"type": "string", "minLength": 1, "maxLength": 253},
+        "overall_score": {"$ref": "#/$defs/Score"},
+        "components": {"$ref": "#/$defs/ScoreComponents"},
+        "evidence": {"$ref": "#/$defs/MatchEvidence"},
+        "state": {"$ref": "#/$defs/CandidateState"},
+        "embedding_space_id": {"$ref": "#/$defs/Identifier"},
+        "extractor_version": {"type": "string", "minLength": 1, "maxLength": 120},
+        "content_sha256": {"$ref": "#/$defs/Sha256"},
+        "discovered_at": {"$ref": "#/$defs/Timestamp"},
+        "created_at": {"$ref": "#/$defs/Timestamp"},
+        "vector_values_exposed": {"const": false}
+      }
+    },
+    "CandidateReviewAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "expected_state"],
+      "properties": {
+        "action": {"type": "string", "enum": ["approve", "suppress", "dismiss"]},
+        "expected_state": {"$ref": "#/$defs/CandidateState"},
+        "reason": {"type": ["string", "null"], "maxLength": 1000}
+      }
+    },
+    "EvaluationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page_revision_ids": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/Identifier"}
+        },
+        "force_recheck": {"type": "boolean", "default": false}
+      },
+      "description": "The server loads query text and embedding-space identity from the immutable rule revision. Caller-supplied vectors are prohibited."
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_create": {"$ref": "#/$defs/DomainSourceCreate"},
+    "source_summary": {"$ref": "#/$defs/DomainSourceSummary"},
+    "rule_revision_create": {"$ref": "#/$defs/AlertRuleRevisionCreate"},
+    "rule_revision_summary": {"$ref": "#/$defs/AlertRuleRevisionSummary"},
+    "query_preview": {"$ref": "#/$defs/QueryPreview"},
+    "candidate_summary": {"$ref": "#/$defs/MatchCandidateSummary"},
+    "candidate_action": {"$ref": "#/$defs/CandidateReviewAction"},
+    "evaluation_request": {"$ref": "#/$defs/EvaluationRequest"}
+  }
+}
