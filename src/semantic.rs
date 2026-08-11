@@ -227,15 +227,9 @@ impl PublicPageFetchPolicy {
     }
 
     pub fn host_is_allowed(&self, raw_host: &str) -> bool {
-        let host = raw_host
-            .trim()
-            .trim_end_matches('.')
-            .to_ascii_lowercase();
+        let host = raw_host.trim().trim_end_matches('.').to_ascii_lowercase();
         self.allowed_hosts.iter().any(|allowed| {
-            let allowed = allowed
-                .trim()
-                .trim_end_matches('.')
-                .to_ascii_lowercase();
+            let allowed = allowed.trim().trim_end_matches('.').to_ascii_lowercase();
             host == allowed
                 || (self.include_subdomains
                     && host
@@ -374,10 +368,7 @@ fn validate_public_url(raw_url: &str) -> Result<Url, ValidationError> {
 }
 
 fn validate_public_host(raw_host: &str) -> Result<String, ValidationError> {
-    let host = raw_host
-        .trim()
-        .trim_end_matches('.')
-        .to_ascii_lowercase();
+    let host = raw_host.trim().trim_end_matches('.').to_ascii_lowercase();
     if host.is_empty()
         || host == "localhost"
         || !host.contains('.')
