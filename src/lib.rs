@@ -54,23 +54,15 @@ impl CreateAlertRule {
             return Err(ValidationError("query must not be empty".into()));
         }
         if !(0.0..=1.0).contains(&self.threshold) {
-            return Err(ValidationError(
-                "threshold must be between 0 and 1".into(),
-            ));
+            return Err(ValidationError("threshold must be between 0 and 1".into()));
         }
         if self.delivery_channel.trim().is_empty() {
-            return Err(ValidationError(
-                "delivery_channel must not be empty".into(),
-            ));
+            return Err(ValidationError("delivery_channel must not be empty".into()));
         }
         Ok(())
     }
 
-    pub fn into_record(
-        self,
-        id: Uuid,
-        now: DateTime<Utc>,
-    ) -> Result<AlertRule, ValidationError> {
+    pub fn into_record(self, id: Uuid, now: DateTime<Utc>) -> Result<AlertRule, ValidationError> {
         self.validate()?;
         Ok(AlertRule {
             id,

@@ -157,9 +157,7 @@ impl AlertRuleRevisionSpec {
             ("lexical_weight", self.lexical_weight),
         ] {
             if !(0.0..=1.0).contains(&value) {
-                return Err(ValidationError(format!(
-                    "{field} must be between 0 and 1"
-                )));
+                return Err(ValidationError(format!("{field} must be between 0 and 1")));
             }
         }
         if (self.semantic_weight + self.lexical_weight - 1.0).abs() > 0.000_1 {
