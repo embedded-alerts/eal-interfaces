@@ -2,7 +2,7 @@
 name = "eal-interfaces"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.85"
 license = "MIT"
 description = "Canonical Rust, JSON Schema, OpenAPI, AsyncAPI, and PostgreSQL contracts for Embedded Alerts."
 repository = "https://github.com/embedded-alerts/eal-interfaces"
