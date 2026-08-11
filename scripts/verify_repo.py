@@ -15,6 +15,7 @@ REQUIRED_CONTRACT_PATHS = [
     "asyncapi.yaml",
     "schemas/alert_rule.json",
     "schemas/source.json",
+    "schemas/source_fetch_policy.json",
     "schemas/source_revision.json",
     "schemas/embedding_vector.json",
     "schemas/match_candidate.json",
@@ -22,6 +23,8 @@ REQUIRED_CONTRACT_PATHS = [
     "schemas/event.schema.json",
     "sql/001_initial.sql",
     "sql/002_semantic_alerts_v2.sql",
+    "sql/003_domain_scoped_crawl_policy.sql",
+    "docs/indexing.md",
 ]
 
 
@@ -77,6 +80,7 @@ def main() -> int:
         "/v1/embeddings/search:",
         "/v1/matches:",
         "/v1/delivery-targets:",
+        "source_fetch_policy.json",
     ):
         if marker not in openapi:
             raise SystemExit(f"OpenAPI contract is missing {marker!r}")
@@ -104,6 +108,20 @@ def main() -> int:
     ):
         if marker not in migration:
             raise SystemExit(f"semantic migration is missing {marker!r}")
+
+    crawl_migration = (
+        ROOT / "sql/003_domain_scoped_crawl_policy.sql"
+    ).read_text(encoding="utf-8")
+    for marker in (
+        "allowed_hosts",
+        "allowed_path_prefixes",
+        "obey_robots",
+        "create table if not exists eal_crawl_queue",
+        "force row level security",
+        "eal_tenant_isolation",
+    ):
+        if marker not in crawl_migration:
+            raise SystemExit(f"crawl-policy migration is missing {marker!r}")
 
     manifest = tomllib.loads((ROOT / ".zpkg.toml").read_text(encoding="utf-8"))
     package = manifest.get("package", {})

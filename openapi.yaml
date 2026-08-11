@@ -82,6 +82,8 @@ paths:
                 enabled: { type: boolean }
                 status: { type: string, enum: [active, paused, error, disabled] }
                 public_config: { type: object }
+                fetch_policy:
+                  $ref: "./schemas/source_fetch_policy.json"
                 credential_reference:
                   type: [string, "null"]
                   maxLength: 2048
@@ -349,7 +351,7 @@ components:
     CreateSource:
       type: object
       additionalProperties: false
-      required: [kind, name, url]
+      required: [kind, name, url, fetch_policy]
       properties:
         kind:
           type: string
@@ -359,6 +361,8 @@ components:
         poll_interval_seconds: { type: integer, minimum: 60, maximum: 604800, default: 900 }
         enabled: { type: boolean, default: true }
         public_config: { type: object, default: {} }
+        fetch_policy:
+          $ref: "./schemas/source_fetch_policy.json"
         credential_reference:
           type: [string, "null"]
           maxLength: 2048
