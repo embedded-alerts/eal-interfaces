@@ -1,23 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DomainEvent",
+  "$id": "https://embedded-alerts.github.io/schemas/event.schema.json",
+  "title": "EventEnvelope",
   "type": "object",
-  "required": [
-    "id",
-    "type",
-    "occurredAt"
-  ],
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "tenant_id", "occurred_at", "sequence", "data"],
   "properties": {
-    "id": {
-      "type": "string"
-    },
-    "type": {
-      "type": "string"
-    },
-    "occurredAt": {
+    "event_id": { "type": "string", "format": "uuid" },
+    "event_type": {
       "type": "string",
-      "format": "date-time"
-    }
-  },
-  "additionalProperties": false
+      "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
+    },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "user_id": { "type": ["string", "null"], "format": "uuid" },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "data": {}
+  }
 }

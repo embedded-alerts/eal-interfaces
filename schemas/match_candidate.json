@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/match_candidate.json",
+  "title": "MatchCandidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "tenant_id", "identity_key", "alert_rule_id", "alert_rule_revision_id",
+    "source_document_id", "source_revision_id", "lexical_score", "total_score",
+    "explanation", "status", "matched_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "identity_key": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" },
+    "alert_rule_id": { "type": "string", "format": "uuid" },
+    "alert_rule_revision_id": { "type": "string", "format": "uuid" },
+    "source_document_id": { "type": "string", "format": "uuid" },
+    "source_revision_id": { "type": "string", "format": "uuid" },
+    "embedding_space_id": { "type": ["string", "null"], "format": "uuid" },
+    "semantic_score": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "lexical_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "total_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "explanation": { "type": "object" },
+    "status": {
+      "type": "string",
+      "enum": ["candidate", "suppressed", "queued", "delivered", "dismissed"]
+    },
+    "matched_at": { "type": "string", "format": "date-time" },
+    "suppressed_until": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

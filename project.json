@@ -6,12 +6,16 @@
   "required_paths": [
     ".github/workflows/ci.yml",
     ".gitignore",
-    "asyncapi/asyncapi.json",
-    "openapi/openapi.json",
     "schemas/event.schema.json",
+    "schemas/source.json",
+    "schemas/source_revision.json",
+    "schemas/embedding_vector.json",
+    "schemas/match_candidate.json",
+    "schemas/delivery_attempt.json",
+    "sql/002_semantic_alerts_v2.sql",
     "scripts/verify_repo.py"
   ],
-  "schema_version": 1,
-  "tracking_issue": "DEN-1949",
+  "schema_version": 2,
+  "tracking_issue": "DEN-3461",
   "visibility": "public"
 }

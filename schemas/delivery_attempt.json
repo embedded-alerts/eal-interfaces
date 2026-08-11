@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/delivery_attempt.json",
+  "title": "DeliveryAttempt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "tenant_id", "match_id", "delivery_target_id", "idempotency_key",
+    "attempt", "status", "created_at", "updated_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "match_id": { "type": "string", "format": "uuid" },
+    "delivery_target_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "attempt": { "type": "integer", "minimum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "delivering", "succeeded", "retry_scheduled", "dead_lettered", "cancelled"]
+    },
+    "next_attempt_at": { "type": ["string", "null"], "format": "date-time" },
+    "provider_reference": { "type": ["string", "null"], "maxLength": 2048 },
+    "response_status": { "type": ["integer", "null"], "minimum": 100, "maximum": 599 },
+    "error_class": { "type": ["string", "null"], "maxLength": 256 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

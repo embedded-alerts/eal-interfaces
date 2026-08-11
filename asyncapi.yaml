@@ -1,31 +1,110 @@
 asyncapi: 3.0.0
 info:
   title: Embedded Alerts events
-  version: 0.1.0
+  version: 0.2.0
+  description: |
+    Authenticated, tenant- and user-filtered events for source ingestion, matching,
+    suppression, and delivery. Clients must reconnect with a bounded cursor rather
+    than treating the socket as the source of record.
 servers:
   local:
     host: localhost:8080
     protocol: ws
 channels:
-  updates:
-    address: /ws
+  userEvents:
+    address: /v1/ws
     messages:
-      AlertRuleChanged:
-        $ref: '#/components/messages/AlertRuleChanged'
+      SourceIngested:
+        $ref: "#/components/messages/SourceIngested"
+      SourceUnchanged:
+        $ref: "#/components/messages/SourceUnchanged"
+      MatchCreated:
+        $ref: "#/components/messages/MatchCreated"
+      MatchSuppressed:
+        $ref: "#/components/messages/MatchSuppressed"
+      DeliveryUpdated:
+        $ref: "#/components/messages/DeliveryUpdated"
 operations:
-  receiveChanges:
+  receiveUserEvents:
     action: receive
     channel:
-      $ref: '#/channels/updates'
+      $ref: "#/channels/userEvents"
 components:
+  schemas:
+    EventEnvelope:
+      type: object
+      additionalProperties: false
+      required: [event_id, event_type, tenant_id, occurred_at, sequence, data]
+      properties:
+        event_id: { type: string, format: uuid }
+        event_type: { type: string }
+        tenant_id: { type: string, format: uuid }
+        user_id: { type: [string, "null"], format: uuid }
+        occurred_at: { type: string, format: date-time }
+        sequence: { type: integer, minimum: 1 }
+        data: {}
   messages:
-    AlertRuleChanged:
+    SourceIngested:
+      name: SourceIngested
+      title: A new immutable page revision was stored.
       payload:
-        type: object
-        required: [event_id, event_type, occurred_at, data]
-        properties:
-          event_id: { type: string, format: uuid }
-          event_type: { type: string }
-          occurred_at: { type: string, format: date-time }
-          data:
-            $ref: './schemas/alert_rule.json'
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              event_type: { const: source.ingested }
+              data:
+                $ref: "./schemas/source_revision.json"
+    SourceUnchanged:
+      name: SourceUnchanged
+      title: Conditional fetch or content hashing found no new revision.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              event_type: { const: source.unchanged }
+              data:
+                type: object
+                required: [source_id, canonical_url, checked_at]
+                properties:
+                  source_id: { type: string, format: uuid }
+                  canonical_url: { type: string, format: uri }
+                  checked_at: { type: string, format: date-time }
+    MatchCreated:
+      name: MatchCreated
+      title: A unique explainable match candidate was created.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              event_type: { const: match.created }
+              data:
+                $ref: "./schemas/match_candidate.json"
+    MatchSuppressed:
+      name: MatchSuppressed
+      title: A valid match was retained but notification was suppressed.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              event_type: { const: match.suppressed }
+              data:
+                $ref: "./schemas/match_candidate.json"
+    DeliveryUpdated:
+      name: DeliveryUpdated
+      title: A durable notification attempt changed state.
+      payload:
+        allOf:
+          - $ref: "#/components/schemas/EventEnvelope"
+          - type: object
+            properties:
+              event_type:
+                enum:
+                  - delivery.succeeded
+                  - delivery.retry_scheduled
+                  - delivery.dead_lettered
+              data:
+                $ref: "./schemas/delivery_attempt.json"

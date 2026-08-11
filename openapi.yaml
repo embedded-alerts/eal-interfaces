@@ -1,74 +1,452 @@
 openapi: 3.1.0
 info:
   title: Embedded Alerts API
-  version: 0.1.0
-  description: "Define semantic alert rules, ingest source documents, compare embeddings, rank matches, and deliver explainable notifications."
+  version: 0.2.0
+  description: >-
+    Tenant-scoped source discovery, immutable page revisions, model-versioned embeddings,
+    explainable match candidates, and idempotent notification delivery.
 servers:
   - url: http://localhost:8080
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
       operationId: health
+      security: []
       responses:
-        '200':
-          description: service is alive
-  /api/v1/alert-rules:
-    get:
-      operationId: listAlertRules
-      responses:
-        '200':
-          description: bounded list
+        "200":
+          description: Liveness and dependency status.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AlertRule'
+                type: object
+                required: [service, status, production_ready]
+                properties:
+                  service: { type: string, const: eal-api }
+                  status: { type: string, enum: [ok, degraded] }
+                  production_ready: { type: boolean }
+  /v1/sources:
+    get:
+      operationId: listSources
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Tenant-owned source connectors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourcePage"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      operationId: createSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSource" }
+      responses:
+        "201":
+          description: Source registered.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/source.json" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/sources/{source_id}:
+    parameters:
+      - $ref: "#/components/parameters/SourceId"
+    get:
+      operationId: getSource
+      responses:
+        "200":
+          description: Source connector without secret values or references.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/source.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: updateSource
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string, minLength: 1, maxLength: 256 }
+                poll_interval_seconds: { type: integer, minimum: 60, maximum: 604800 }
+                enabled: { type: boolean }
+                status: { type: string, enum: [active, paused, error, disabled] }
+                public_config: { type: object }
+                credential_reference:
+                  type: [string, "null"]
+                  maxLength: 2048
+                  writeOnly: true
+      responses:
+        "200":
+          description: Updated source.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/source.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/sources/{source_id}/ingest:
+    parameters:
+      - $ref: "#/components/parameters/SourceId"
+    post:
+      operationId: enqueueSourceIngestion
+      responses:
+        "202":
+          description: Bounded ingestion job queued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job_id, source_id, status]
+                properties:
+                  job_id: { type: string, format: uuid }
+                  source_id: { type: string, format: uuid }
+                  status: { type: string, const: queued }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /v1/alert-rules:
+    get:
+      operationId: listAlertRules
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Authenticated user's alert rules.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertRulePage" }
     post:
       operationId: createAlertRule
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/CreateAlertRule'
+            schema: { $ref: "#/components/schemas/CreateAlertRule" }
       responses:
-        '201':
-          description: created
+        "201":
+          description: Rule and immutable revision created transactionally.
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/AlertRule'
-        '422':
-          description: validation failure
-  /api/v1/alert-rules/{id}:
+              schema: { $ref: "./schemas/alert_rule.json" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/alert-rules/{rule_id}:
+    parameters:
+      - $ref: "#/components/parameters/RuleId"
     get:
       operationId: getAlertRule
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string, format: uuid }
       responses:
-        '200':
-          description: found
+        "200":
+          description: Rule with current revision metadata.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/alert_rule.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: reviseAlertRule
+      description: Matching changes create a new immutable rule revision.
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema: { $ref: "#/components/schemas/CreateAlertRule" }
+      responses:
+        "200":
+          description: Revised rule.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/alert_rule.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/embeddings/search:
+    post:
+      operationId: searchEmbeddings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmbeddingSearchRequest" }
+      responses:
+        "200":
+          description: Tenant-filtered results from exactly one embedding space.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EmbeddingSearchPage" }
+        "409":
+          description: Query and stored vectors belong to different embedding spaces.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/matches:
+    get:
+      operationId: listMatches
+      parameters:
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+        - in: query
+          name: status
+          schema: { type: string, enum: [candidate, suppressed, queued, delivered, dismissed] }
+      responses:
+        "200":
+          description: Stable, descending match page.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchPage" }
+  /v1/matches/{match_id}:
+    parameters:
+      - $ref: "#/components/parameters/MatchId"
+    get:
+      operationId: getMatch
+      responses:
+        "200":
+          description: Explainable match candidate.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/match_candidate.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/matches/{match_id}/dismiss:
+    parameters:
+      - $ref: "#/components/parameters/MatchId"
+    post:
+      operationId: dismissMatch
+      responses:
+        "204": { description: User-scoped dismissal recorded. }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/delivery-targets:
+    get:
+      operationId: listDeliveryTargets
+      responses:
+        "200":
+          description: Secret-free delivery-target metadata.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AlertRule'
-        '404': { description: not found }
-  /ws:
+                type: array
+                items: { $ref: "#/components/schemas/DeliveryTarget" }
+    post:
+      operationId: createDeliveryTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateDeliveryTarget" }
+      responses:
+        "201":
+          description: Delivery target created; secret material is referenced, not stored in response data.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeliveryTarget" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /v1/delivery-attempts/{attempt_id}/replay:
+    parameters:
+      - $ref: "#/components/parameters/AttemptId"
+    post:
+      operationId: replayDeliveryAttempt
+      description: Creates a linked attempt and preserves the original receipt.
+      responses:
+        "202":
+          description: Replay queued.
+          content:
+            application/json:
+              schema: { $ref: "./schemas/delivery_attempt.json" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /v1/ws:
     get:
       operationId: websocket
+      description: Authenticated, tenant- and user-filtered event stream. It is not a source of truth.
       responses:
-        '101': { description: WebSocket upgrade }
+        "101": { description: WebSocket upgrade. }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      in: query
+      name: cursor
+      schema: { type: string, maxLength: 1024 }
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    SourceId:
+      in: path
+      name: source_id
+      required: true
+      schema: { type: string, format: uuid }
+    RuleId:
+      in: path
+      name: rule_id
+      required: true
+      schema: { type: string, format: uuid }
+    MatchId:
+      in: path
+      name: match_id
+      required: true
+      schema: { type: string, format: uuid }
+    AttemptId:
+      in: path
+      name: attempt_id
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotFound:
+      description: Resource not found in the authenticated scope.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    Conflict:
+      description: Identity, model-space, or optimistic concurrency conflict.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    ValidationError:
+      description: Request validation failed.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Tenant or host fetch budget exhausted.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
   schemas:
-    AlertRule:
-      $ref: './schemas/alert_rule.json'
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer, minimum: 400, maximum: 599 }
+        detail: { type: string }
+        trace_id: { type: string }
+    PageInfo:
+      type: object
+      required: [has_more]
+      properties:
+        next_cursor: { type: [string, "null"] }
+        has_more: { type: boolean }
+    CreateSource:
+      type: object
+      additionalProperties: false
+      required: [kind, name, url]
+      properties:
+        kind:
+          type: string
+          enum: [rss, atom, json_feed, search_query, sitemap, web_page, api]
+        name: { type: string, minLength: 1, maxLength: 256 }
+        url: { type: string, format: uri, pattern: "^https?://" }
+        poll_interval_seconds: { type: integer, minimum: 60, maximum: 604800, default: 900 }
+        enabled: { type: boolean, default: true }
+        public_config: { type: object, default: {} }
+        credential_reference:
+          type: [string, "null"]
+          maxLength: 2048
+          writeOnly: true
+          description: Opaque secret-manager reference; never returned.
     CreateAlertRule:
       type: object
-      required: [title]
+      additionalProperties: false
+      required: [title, query_text]
       properties:
         title: { type: string, minLength: 1, maxLength: 256 }
-        summary: { type: string, maxLength: 4000 }
+        summary: { type: string, maxLength: 4000, default: "" }
+        query_text: { type: string, minLength: 1, maxLength: 16384 }
+        embedding_space_id: { type: [string, "null"], format: uuid }
+        semantic_threshold: { type: number, minimum: 0, maximum: 1, default: 0.78 }
+        semantic_weight: { type: number, minimum: 0, maximum: 1, default: 0.8 }
+        lexical_weight: { type: number, minimum: 0, maximum: 1, default: 0.2 }
+        required_terms: { type: array, items: { type: string, maxLength: 256 }, default: [] }
+        excluded_terms: { type: array, items: { type: string, maxLength: 256 }, default: [] }
+        source_ids: { type: array, items: { type: string, format: uuid }, default: [] }
+        delivery_target_ids: { type: array, items: { type: string, format: uuid }, default: [] }
+        cooldown_seconds: { type: integer, minimum: 0, maximum: 2592000, default: 3600 }
+        enabled: { type: boolean, default: true }
+    EmbeddingSearchRequest:
+      type: object
+      additionalProperties: false
+      required: [embedding_space_id, vector]
+      properties:
+        embedding_space_id: { type: string, format: uuid }
+        vector:
+          type: array
+          minItems: 1
+          maxItems: 32768
+          items: { type: number }
+        min_score: { type: number, minimum: 0, maximum: 1, default: 0 }
+        cursor: { type: [string, "null"], maxLength: 1024 }
+        limit: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    EmbeddingSearchResult:
+      type: object
+      required: [source_revision_id, canonical_url, score, embedding_space_id]
+      properties:
+        source_revision_id: { type: string, format: uuid }
+        canonical_url: { type: string, format: uri }
+        title: { type: [string, "null"] }
+        score: { type: number, minimum: 0, maximum: 1 }
+        embedding_space_id: { type: string, format: uuid }
+    DeliveryTarget:
+      type: object
+      additionalProperties: false
+      required: [id, kind, label, enabled, credentials_configured]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [webhook, email, slack, discord, in_app] }
+        label: { type: string, minLength: 1, maxLength: 256 }
+        enabled: { type: boolean }
+        credentials_configured: { type: boolean }
+        public_metadata: { type: object }
+    CreateDeliveryTarget:
+      type: object
+      additionalProperties: false
+      required: [kind, label, config_reference]
+      properties:
+        kind: { type: string, enum: [webhook, email, slack, discord, in_app] }
+        label: { type: string, minLength: 1, maxLength: 256 }
+        config_reference: { type: string, minLength: 1, maxLength: 2048, writeOnly: true }
+        public_metadata: { type: object, default: {} }
+        enabled: { type: boolean, default: true }
+    SourcePage:
+      type: object
+      required: [items, page]
+      properties:
+        items: { type: array, items: { $ref: "./schemas/source.json" } }
+        page: { $ref: "#/components/schemas/PageInfo" }
+    AlertRulePage:
+      type: object
+      required: [items, page]
+      properties:
+        items: { type: array, items: { $ref: "./schemas/alert_rule.json" } }
+        page: { $ref: "#/components/schemas/PageInfo" }
+    EmbeddingSearchPage:
+      type: object
+      required: [items, page]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/EmbeddingSearchResult" } }
+        page: { $ref: "#/components/schemas/PageInfo" }
+    MatchPage:
+      type: object
+      required: [items, page]
+      properties:
+        items: { type: array, items: { $ref: "./schemas/match_candidate.json" } }
+        page: { $ref: "#/components/schemas/PageInfo" }
