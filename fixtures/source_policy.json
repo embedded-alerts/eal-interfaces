@@ -1,0 +1,13 @@
+{
+  "name": "Rust release notes",
+  "root_url": "https://blog.rust-lang.org/",
+  "allowed_hosts": ["blog.rust-lang.org"],
+  "allowed_path_prefixes": ["/"],
+  "include_subdomains": false,
+  "discovery_modes": ["sitemap", "rss", "external_index_candidates"],
+  "crawl_interval_seconds": 900,
+  "max_depth": 3,
+  "max_pages_per_run": 1000,
+  "obey_robots": true,
+  "enabled": true
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/page_ingest.json",
+  "title": "PageIngestRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_id",
+    "url",
+    "final_url",
+    "content_text",
+    "content_type",
+    "http_status",
+    "fetched_at",
+    "embedding"
+  ],
+  "properties": {
+    "source_id": { "type": "string", "format": "uuid" },
+    "url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "final_url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "title": { "type": ["string", "null"], "maxLength": 4096 },
+    "content_text": { "type": "string", "minLength": 1, "maxLength": 5000000 },
+    "content_type": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "http_status": { "type": "integer", "minimum": 200, "maximum": 399 },
+    "published_at": { "type": ["string", "null"], "format": "date-time" },
+    "fetched_at": { "type": "string", "format": "date-time" },
+    "embedding": { "$ref": "#/$defs/EmbeddingPayload" }
+  },
+  "$defs": {
+    "EmbeddingPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "model_version", "dimensions", "normalization", "values"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "model_version": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "dimensions": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "normalization": { "type": "string", "enum": ["none", "l2", "unit_length"] },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 65535,
+          "items": { "type": "number" }
+        }
+      }
+    }
+  }
+}
