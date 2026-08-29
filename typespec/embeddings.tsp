@@ -1,6 +1,6 @@
 // GENERATED FILE - do not edit by hand.
 // Regenerate: node scripts/embeddings/generate.mjs
-// Contract: ores-embedding-contract 2026.08.29 (sha256 39b8e1599d227a97f2362fdb6d3495dd38853b3345d7b05e90b64088884f9250)
+// Contract: ores-embedding-contract 2026.08.29 (sha256 98976465928699fb3c6c20728e4ad9f42a9d4ba0a626332f9184317c77c1e844)
 //
 // TypeSpec is the interface-level statement of the same contract the SQL in
 // db/schema enforces at the storage level. When they disagree, the SQL wins and

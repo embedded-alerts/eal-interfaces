@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://embedded-alerts.github.io/schemas/embeddings.schema.json",
   "title": "embedded-alerts embedding contracts",
-  "description": "Generated from db/embedding-contract.json + db/org-manifest.json. Contract 2026.08.29, sha256 39b8e1599d227a97f2362fdb6d3495dd38853b3345d7b05e90b64088884f9250. Do not hand-edit; run scripts/embeddings/generate.mjs.",
+  "description": "Generated from db/embedding-contract.json + db/org-manifest.json. Contract 2026.08.29, sha256 98976465928699fb3c6c20728e4ad9f42a9d4ba0a626332f9184317c77c1e844. Do not hand-edit; run scripts/embeddings/generate.mjs.",
   "$defs": {
     "EmbeddingProvider": {
       "type": "string",
