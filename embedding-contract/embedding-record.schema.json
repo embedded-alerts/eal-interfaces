@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/embedded-alerts/eal-interfaces/raw/main/embedding-contract/embedding-record.schema.json",
+  "title": "EmbeddedAlerts stored embedding v2",
+  "description": "Portable 4,100-slot embedding contract for web pages, tracked changes, and next-generation web alerts. Trailing zeros preserve smaller provider outputs without claiming that padding adds information.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tenantId",
+    "entityKind",
+    "entityId",
+    "purpose",
+    "embeddingProvider",
+    "model",
+    "originalDimensions",
+    "embeddingSpace",
+    "storageDimensions",
+    "values",
+    "normalization",
+    "contentHash"
+  ],
+  "properties": {
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "entityKind": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "entityId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "purpose": {
+      "type": "string",
+      "enum": [
+        "webpage_search",
+        "change_correlation",
+        "alert"
+      ]
+    },
+    "embeddingProvider": {
+      "type": "string",
+      "enum": [
+        "openai",
+        "google",
+        "voyage",
+        "qwen",
+        "nvidia",
+        "baai",
+        "custom"
+      ],
+      "description": "The provider that actually produced the vector. Anthropic is intentionally excluded because Anthropic does not offer its own embedding model."
+    },
+    "generationProvider": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "qwen",
+        "nvidia",
+        "baai",
+        "custom",
+        null
+      ],
+      "description": "Optional generator/orchestrator provenance. Anthropic belongs here when Claude produced the source text before another provider embedded it."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "originalDimensions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096
+    },
+    "embeddingSpace": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 320,
+      "description": "Provider, model, source dimension, and normalization identity. Only vectors in the same embedding space may be compared."
+    },
+    "storageDimensions": {
+      "const": 4100
+    },
+    "values": {
+      "type": "array",
+      "minItems": 4100,
+      "maxItems": 4100,
+      "items": {
+        "type": "number"
+      },
+      "description": "Finite float values. Slots after originalDimensions MUST be trailing zeros."
+    },
+    "normalization": {
+      "type": "string",
+      "enum": [
+        "provider",
+        "l2",
+        "none"
+      ]
+    },
+    "searchText": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200000
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "EmbeddingInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "embeddingProvider",
+        "model",
+        "values"
+      ],
+      "properties": {
+        "embeddingProvider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "google",
+            "voyage",
+            "qwen",
+            "nvidia",
+            "baai",
+            "custom"
+          ]
+        },
+        "generationProvider": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "openai",
+            "anthropic",
+            "google",
+            "qwen",
+            "nvidia",
+            "baai",
+            "custom",
+            null
+          ]
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}

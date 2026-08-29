@@ -1,0 +1,23 @@
+name: embedding-contract
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify cross-artifact invariants
+        run: node scripts/verify-embedding-contract.mjs
+      - name: Compile Microsoft TypeSpec
+        run: npx --yes --package @typespec/compiler@1.15.0 tsp compile embedding-contract/embeddings.tsp --no-emit
