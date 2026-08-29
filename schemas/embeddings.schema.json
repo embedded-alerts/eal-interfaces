@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/embeddings.schema.json",
+  "title": "embedded-alerts embedding contracts",
+  "description": "Generated from db/embedding-contract.json + db/org-manifest.json. Contract 2026.08.29, sha256 39b8e1599d227a97f2362fdb6d3495dd38853b3345d7b05e90b64088884f9250. Do not hand-edit; run scripts/embeddings/generate.mjs.",
+  "$defs": {
+    "EmbeddingProvider": {
+      "type": "string",
+      "enum": [
+        "baai",
+        "google",
+        "intfloat",
+        "nvidia",
+        "openai",
+        "qwen",
+        "voyage"
+      ]
+    },
+    "EmbeddingModelKey": {
+      "type": "string",
+      "enum": [
+        "openai:text-embedding-3-large:1",
+        "openai:text-embedding-3-small:1",
+        "openai:text-embedding-ada-002:2",
+        "voyage:voyage-3-large:1",
+        "voyage:voyage-3.5:1",
+        "voyage:voyage-3.5-lite:1",
+        "voyage:voyage-code-3:1",
+        "google:gemini-embedding-001:1",
+        "google:text-embedding-004:1",
+        "google:text-multilingual-embedding-002:1",
+        "qwen:Qwen3-Embedding-8B:1",
+        "qwen:Qwen3-Embedding-4B:1",
+        "qwen:Qwen3-Embedding-0.6B:1",
+        "nvidia:NV-Embed-v2:1",
+        "baai:bge-en-icl:1",
+        "baai:bge-m3:1",
+        "intfloat:e5-mistral-7b-instruct:1"
+      ]
+    },
+    "EntityKind": {
+      "type": "string",
+      "enum": [
+        "page",
+        "page_section",
+        "feed_item",
+        "alert_rule",
+        "snapshot_diff",
+        "extracted_claim"
+      ]
+    },
+    "EmbeddingModel": {
+      "type": "object",
+      "description": "One row of the model registry. Mirrors eal.embedding_models.",
+      "required": [
+        "modelKey",
+        "provider",
+        "modelName",
+        "modelVersion",
+        "nativeDims",
+        "mrl",
+        "normalizedByProvider",
+        "family"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "modelKey": {
+          "$ref": "#/$defs/EmbeddingModelKey"
+        },
+        "provider": {
+          "$ref": "#/$defs/EmbeddingProvider"
+        },
+        "modelName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "modelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "nativeDims": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4100
+        },
+        "mrl": {
+          "type": "boolean",
+          "description": "Matryoshka-trained: a prefix of the vector is a valid approximation of the whole."
+        },
+        "mrlPrefixValid": {
+          "type": "boolean",
+          "description": "mrl AND nativeDims >= 1024. Governs eligibility for the prefix ANN index."
+        },
+        "normalizedByProvider": {
+          "type": "boolean",
+          "description": "False means the client must L2-normalize before insert."
+        },
+        "family": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "EmbeddingVector": {
+      "type": "array",
+      "description": "Canonical stored embedding: exactly 4100 float components, left-aligned to nativeDims, zero on every index past nativeDims, and L2-normalized to unit length within 0.001.",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 4100,
+      "maxItems": 4100
+    },
+    "PageEmbedding": {
+      "type": "object",
+      "description": "Turn the web into embeddings and run a semantic replacement for Google Alerts: a saved alert rule is itself an embedding, and a crawl fires when a new page or page section lands close enough to it.",
+      "required": [
+        "id",
+        "workspaceId",
+        "entityKind",
+        "entityId",
+        "modelKey",
+        "provider",
+        "modelName",
+        "modelVersion",
+        "nativeDims",
+        "embedding",
+        "contentSha256",
+        "generatedAt"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entityKind": {
+          "$ref": "#/$defs/EntityKind"
+        },
+        "entityId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "modelKey": {
+          "$ref": "#/$defs/EmbeddingModelKey"
+        },
+        "provider": {
+          "$ref": "#/$defs/EmbeddingProvider"
+        },
+        "modelName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "modelVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "nativeDims": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4100
+        },
+        "mrlPrefixValid": {
+          "type": "boolean",
+          "default": false
+        },
+        "embedding": {
+          "$ref": "#/$defs/EmbeddingVector"
+        },
+        "titleText": {
+          "type": "string",
+          "maxLength": 2048,
+          "default": "",
+          "description": "Weight A in the tsvector: titles, names, human tags."
+        },
+        "summaryText": {
+          "type": "string",
+          "maxLength": 8192,
+          "default": "",
+          "description": "Weight B: human descriptions, captions, abstracts."
+        },
+        "bodyText": {
+          "type": "string",
+          "maxLength": 65536,
+          "default": "",
+          "description": "Weight D: full body, transcript or OCR text."
+        },
+        "contentSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sourceUri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2048
+        },
+        "metadata": {
+          "type": "object",
+          "default": {}
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "HybridSearchRequest": {
+      "type": "object",
+      "required": [
+        "workspaceId",
+        "modelKey"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "modelKey": {
+          "$ref": "#/$defs/EmbeddingModelKey"
+        },
+        "queryText": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 4096
+        },
+        "queryEmbedding": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EmbeddingVector"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entityKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EntityKind"
+          },
+          "default": []
+        },
+        "candidateCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000,
+          "default": 400
+        },
+        "resultCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        }
+      }
+    },
+    "HybridSearchHit": {
+      "type": "object",
+      "required": [
+        "id",
+        "entityKind",
+        "entityId",
+        "rrfScore"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entityKind": {
+          "$ref": "#/$defs/EntityKind"
+        },
+        "entityId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "titleText": {
+          "type": "string"
+        },
+        "summaryText": {
+          "type": "string"
+        },
+        "sourceUri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "modelKey": {
+          "$ref": "#/$defs/EmbeddingModelKey"
+        },
+        "vectorRank": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "lexicalRank": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "rrfScore": {
+          "type": "number"
+        },
+        "cosineSimilarity": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -1,
+          "maximum": 1
+        },
+        "lexicalScore": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
