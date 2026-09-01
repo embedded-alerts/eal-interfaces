@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/embedded-alerts/eal-interfaces/main/embedding-contract/model-space-v3.schema.json",
+  "title": "Embedded Alerts embedding model-space registry v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "registryRevision", "product", "repositoryRole", "authority", "storage", "spaceFamily", "database", "ann", "providers", "models"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "contractVersion": { "const": "3.0.0" },
+    "registryRevision": { "type": "string", "format": "date" },
+    "product": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "repositoryRole": { "enum": ["lib-core", "orm-core", "interfaces"] },
+    "authority": {
+      "type": "object", "additionalProperties": false,
+      "required": ["libCore", "ormCore", "interfaces", "externalSqlAuthorities", "startupDdl"],
+      "properties": {
+        "libCore": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "ormCore": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "interfaces": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "externalSqlAuthorities": { "type": "array", "maxItems": 0 },
+        "startupDdl": { "const": false }
+      }
+    },
+    "storage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceDimensions", "slots", "missing", "padding", "reject"],
+      "properties": {
+        "sourceDimensions": { "type": "object", "additionalProperties": false, "required": ["min", "max"], "properties": { "min": { "const": 1 }, "max": { "const": 4096 } } },
+        "slots": { "const": 4100 },
+        "missing": { "const": "null" },
+        "padding": { "const": "trailing-zero-only" },
+        "reject": { "type": "array", "allOf": [{ "contains": { "const": "non-finite" } }, { "contains": { "const": "all-zero-learned-prefix" } }] }
+      }
+    },
+    "spaceFamily": { "type": "object" },
+    "database": { "type": "object" },
+    "ann": {
+      "type": "object", "required": ["default", "limits", "rules"],
+      "properties": {
+        "default": { "const": "binary-full-rerank" },
+        "limits": { "type": "object", "required": ["vector", "halfvec", "binary"], "properties": { "vector": { "const": 2000 }, "halfvec": { "const": 4000 }, "binary": { "const": 4100 } } },
+        "rules": { "type": "array", "minItems": 3 }
+      }
+    },
+    "providers": {
+      "type": "object", "required": ["embedding", "generation", "anthropic"],
+      "properties": {
+        "embedding": { "type": "array", "not": { "contains": { "const": "anthropic" } } },
+        "generation": { "type": "array", "contains": { "const": "anthropic" } },
+        "anthropic": { "const": "generation-provenance-only" }
+      }
+    },
+    "models": {
+      "type": "object",
+      "required": ["openai/text-embedding-ada-002", "openai/text-embedding-3-small", "openai/text-embedding-3-large", "google/gemini-embedding-001", "google/gemini-embedding-2", "qwen/Qwen3-Embedding-8B", "nvidia/NV-Embed-v2", "baai/bge-en-icl"],
+      "additionalProperties": {
+        "type": "object", "required": ["dims", "shortenable", "mrl", "instructionAware", "ann"],
+        "properties": {
+          "dims": { "type": "array", "prefixItems": [{ "type": "integer", "minimum": 1, "maximum": 4096 }, { "type": "integer", "minimum": 1, "maximum": 4096 }], "items": false },
+          "default": { "type": "integer", "minimum": 1, "maximum": 4096 },
+          "shortenable": { "type": "boolean" },
+          "mrl": { "type": "boolean" },
+          "instructionAware": { "type": "boolean" },
+          "ann": { "type": "array", "prefixItems": [{ "enum": ["halfvec-exact", "halfvec-mrl", "binary-full-rerank", "exact-only"] }, { "type": "integer", "minimum": 0, "maximum": 4100 }], "items": false }
+        }
+      }
+    }
+  }
+}
