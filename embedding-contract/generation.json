@@ -1,0 +1,24 @@
+{
+  "contractVersion": "2.0.0",
+  "owner": "embedded-alerts",
+  "repositoryRole": "interfaces",
+  "externalSqlAuthorities": [],
+  "dimensions": {
+    "storage": 4100,
+    "maximumSource": 4096,
+    "padding": "trailing-zero"
+  },
+  "codeFirst": {
+    "typeSpec": "embedding-contract/embeddings.tsp",
+    "jsonSchema": "embedding-contract/embedding-record.schema.json",
+    "rustModel": null
+  },
+  "databaseFirst": {
+    "authorityRepository": "embedded-alerts/eal-orm-core",
+    "migrationsAreAppliedAtStartup": false
+  },
+  "conformance": {
+    "verifier": "scripts/verify-embedding-contract.mjs",
+    "typeSpecCompiler": "@typespec/compiler@1.15.0"
+  }
+}
