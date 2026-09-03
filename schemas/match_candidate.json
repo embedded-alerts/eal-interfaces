@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/match_candidate.json",
+  "title": "MatchCandidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "tenant_id",
+    "alert_rule_id",
+    "revision_id",
+    "embedding_id",
+    "canonical_match_key",
+    "similarity",
+    "threshold",
+    "status",
+    "score_explanation",
+    "created_at"
+  ],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "tenant_id": { "type": "string", "format": "uuid" },
+    "alert_rule_id": { "type": "string", "format": "uuid" },
+    "revision_id": { "type": "string", "format": "uuid" },
+    "embedding_id": { "type": "string", "format": "uuid" },
+    "canonical_match_key": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "similarity": { "type": "number", "minimum": -1, "maximum": 1 },
+    "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "suppressed", "approved", "rejected", "delivered", "failed"]
+    },
+    "score_explanation": { "type": "object" },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}
