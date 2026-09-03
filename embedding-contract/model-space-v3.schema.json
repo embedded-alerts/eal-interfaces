@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/embedded-alerts/eal-interfaces/main/embedding-contract/model-space-v3.schema.json",
+  "title": "Embedded Alerts embedding model-space v3",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "contractVersion",
+    "registryRevision",
+    "product",
+    "repositoryRole",
+    "authority",
+    "storage",
+    "spaceIdentity",
+    "compatibleRoles",
+    "purposes",
+    "providers",
+    "models",
+    "database",
+    "activation"
+  ],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "contractVersion": { "const": "3.1.0" },
+    "registryRevision": { "type": "string", "format": "date" },
+    "product": { "const": "embedded-alerts" },
+    "repositoryRole": { "const": "lib-core" },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["libCore", "ormCore", "interfaces", "externalSqlAuthorities", "startupDdl"],
+      "properties": {
+        "libCore": { "const": "embedded-alerts/eal-lib-core" },
+        "ormCore": { "const": "embedded-alerts/eal-orm-core" },
+        "interfaces": { "const": "embedded-alerts/eal-interfaces" },
+        "externalSqlAuthorities": { "type": "array", "maxItems": 0 },
+        "startupDdl": { "const": false }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceDimensions", "slots", "missing", "padding", "reject"],
+      "properties": {
+        "sourceDimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "const": 1 },
+            "max": { "const": 4096 }
+          }
+        },
+        "slots": { "const": 4100 },
+        "missing": { "const": "null" },
+        "padding": { "const": "trailing-zero-only" },
+        "reject": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "allOf": [
+            { "contains": { "const": "non-finite" } },
+            { "contains": { "const": "all-zero-learned-prefix" } },
+            { "contains": { "const": "non-zero-tail" } }
+          ],
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "spaceIdentity": {
+      "type": "array",
+      "minItems": 12,
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "compatibleRoles": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": { "type": "string" }
+    },
+    "purposes": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": { "enum": ["webpage_search", "change_correlation", "alert"] }
+    },
+    "providers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["embedding", "generation", "anthropic"],
+      "properties": {
+        "embedding": {
+          "type": "array",
+          "contains": { "const": "voyage" },
+          "not": { "contains": { "const": "anthropic" } },
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "generation": {
+          "type": "array",
+          "contains": { "const": "anthropic" },
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "anthropic": { "const": "generation-provenance-only" }
+      }
+    },
+    "models": {
+      "type": "object",
+      "minProperties": 10,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["min", "default", "max", "mrl", "strategy", "annDimensions"],
+        "properties": {
+          "min": { "type": "integer", "minimum": 1, "maximum": 4096 },
+          "default": { "type": "integer", "minimum": 1, "maximum": 4096 },
+          "max": { "type": "integer", "minimum": 1, "maximum": 4096 },
+          "mrl": { "type": "boolean" },
+          "strategy": {
+            "enum": ["halfvec-exact", "halfvec-mrl", "binary-full-rerank", "exact-only"]
+          },
+          "annDimensions": { "type": "integer", "minimum": 0, "maximum": 4100 }
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenantContext",
+        "tenantCompositeForeignKeys",
+        "lexicalCandidates",
+        "semanticCandidates",
+        "fusion",
+        "exactRerank",
+        "globalFilteredAnnIndex",
+        "annActivation"
+      ],
+      "properties": {
+        "tenantContext": { "const": "transaction-local-and-missing-safe" },
+        "tenantCompositeForeignKeys": { "const": true },
+        "lexicalCandidates": { "const": "independent-weighted-tsvector" },
+        "semanticCandidates": { "const": "exact-baseline" },
+        "fusion": { "const": "reciprocal-rank-fusion" },
+        "exactRerank": { "const": true },
+        "globalFilteredAnnIndex": { "const": false },
+        "annActivation": { "const": "literal-reviewed-space-only-after-recall-evidence" }
+      }
+    },
+    "activation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profilesEnabledByDefault", "spacesEnabledByDefault", "requires"],
+      "properties": {
+        "profilesEnabledByDefault": { "const": false },
+        "spacesEnabledByDefault": { "const": false },
+        "requires": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
