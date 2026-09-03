@@ -1,0 +1,14 @@
+[package]
+org = "embedded-alerts"
+name = "eal-public-validation-contracts"
+version = "0.1.0"
+description = "Public peer validation authorities for embedded-alerts"
+license = "MIT"
+
+[targets.json-schema]
+dir = "."
+adapter = "none"
+
+[targets.typespec]
+dir = "typespec"
+adapter = "none"
