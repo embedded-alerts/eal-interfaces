@@ -8,6 +8,10 @@ description = "Canonical Rust, JSON Schema, OpenAPI, AsyncAPI, and PostgreSQL co
 repository = "https://github.com/embedded-alerts/eal-interfaces"
 publish = false
 
+[workspace]
+members = [".", "crates/semantic-contracts"]
+resolver = "2"
+
 [lib]
 path = "src/lib.rs"
 

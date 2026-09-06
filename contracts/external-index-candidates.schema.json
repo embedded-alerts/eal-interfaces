@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.dev/contracts/external-index-candidates.schema.json",
+  "title": "External index candidate batch",
+  "description": "Provider-neutral URL nominations from an existing public index. Candidates are untrusted hints and must pass Embedded Alerts source policy and fetch validation before indexing or matching.",
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "Candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "observed_at", "provider_rank"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "Untrusted candidate URL. Credentials, fragments, unsupported schemes, IP literals, off-policy hosts, and private/non-public destinations are rejected downstream."
+        },
+        "observed_at": {"$ref": "#/$defs/Timestamp"},
+        "provider_rank": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "provider_score": {"type": ["number", "null"]},
+        "provider_document_id": {"type": ["string", "null"], "maxLength": 500},
+        "provider_content_digest": {"type": ["string", "null"], "maxLength": 500},
+        "discovery_context": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": ["string", "number", "integer", "boolean", "null"]
+          },
+          "description": "Bounded provenance only. Provider snippets or stored page bodies are not authoritative content."
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "source_id", "domain_policy_revision_id", "adapter", "adapter_version", "collection", "requested_at", "candidates"],
+  "properties": {
+    "tenant_id": {"$ref": "#/$defs/Identifier"},
+    "source_id": {"$ref": "#/$defs/Identifier"},
+    "domain_policy_revision_id": {"$ref": "#/$defs/Identifier"},
+    "adapter": {
+      "type": "string",
+      "enum": ["common_crawl", "search_api", "custom_public_index"],
+      "description": "Adapter family, not an authorization mechanism."
+    },
+    "adapter_version": {"type": "string", "minLength": 1, "maxLength": 120},
+    "collection": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Provider collection/index/snapshot identifier used for replay and audit."
+    },
+    "requested_at": {"$ref": "#/$defs/Timestamp"},
+    "query_fingerprint": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Hash of the internally generated provider query. The raw user alert query need not be disclosed to the external index."
+    },
+    "cursor": {"type": ["string", "null"], "maxLength": 2000},
+    "next_cursor": {"type": ["string", "null"], "maxLength": 2000},
+    "exhausted": {"type": "boolean"},
+    "candidates": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {"$ref": "#/$defs/Candidate"}
+    }
+  },
+  "allOf": [
+    {
+      "not": {
+        "anyOf": [
+          {"required": ["page_body"]},
+          {"required": ["embedding"]},
+          {"required": ["vector"]},
+          {"required": ["authorization_token"]}
+        ]
+      }
+    }
+  ]
+}

@@ -1,74 +1,311 @@
 openapi: 3.1.0
 info:
   title: Embedded Alerts API
-  version: 0.1.0
-  description: "Define semantic alert rules, ingest source documents, compare embeddings, rank matches, and deliver explainable notifications."
+  version: 0.2.0
+  description: >-
+    Domain-scoped public-page indexing, model-versioned semantic search, and
+    explainable match candidates. Discovery adapters may suggest URLs, but only
+    locally fetched and policy-validated revisions enter matching.
 servers:
   - url: http://localhost:8080
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
       operationId: health
+      security: []
       responses:
         '200':
-          description: service is alive
-  /api/v1/alert-rules:
+          description: Service health and production-readiness boundary.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [service, status, production_ready]
+                properties:
+                  service: { type: string }
+                  status: { type: string }
+                  production_ready: { type: boolean }
+  /v1/sources:
     get:
-      operationId: listAlertRules
+      operationId: listSources
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
       responses:
         '200':
-          description: bounded list
+          description: Tenant-owned source policies.
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/AlertRule'
+                items: { $ref: '#/components/schemas/SourcePolicyRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
-      operationId: createAlertRule
+      operationId: createSource
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSourcePolicy' }
+      responses:
+        '201':
+          description: Source policy created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourcePolicyRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/DatabaseRequired' }
+  /v1/sources/{sourceId}:
+    get:
+      operationId: getSource
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: sourceId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Source policy.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SourcePolicyRecord' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /v1/sources/{sourceId}/pages:
+    post:
+      operationId: ingestPage
+      description: >-
+        Trusted worker endpoint. The API revalidates tenant ownership, URL scope,
+        content identity, embedding dimensions, and model provenance.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: sourceId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PageIngestRequest' }
+      responses:
+        '200':
+          description: Unchanged content was already indexed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageRevision' }
+        '201':
+          description: New page revision and embedding created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageRevision' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/DatabaseRequired' }
+  /v1/embeddings/search:
+    post:
+      operationId: searchEmbeddings
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmbeddingSearchRequest' }
+      responses:
+        '200':
+          description: Stable, tenant-scoped search results with model provenance.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmbeddingSearchResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/DatabaseRequired' }
+  /v1/matches/evaluate:
+    post:
+      operationId: evaluateMatches
+      description: >-
+        Creates deduplicated match candidates. It never sends notifications;
+        DEN-3460 owns approval, cooldown, retry, and delivery receipts.
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateAlertRule'
-      responses:
-        '201':
-          description: created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AlertRule'
-        '422':
-          description: validation failure
-  /api/v1/alert-rules/{id}:
-    get:
-      operationId: getAlertRule
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema: { type: string, format: uuid }
+              type: object
+              additionalProperties: false
+              required: [alert_rule_id, threshold, search]
+              properties:
+                alert_rule_id: { type: string, format: uuid }
+                threshold: { type: number, minimum: 0, maximum: 1 }
+                search: { $ref: '#/components/schemas/EmbeddingSearchRequest' }
       responses:
         '200':
-          description: found
+          description: Existing and newly-created logical candidates.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AlertRule'
-        '404': { description: not found }
-  /ws:
+                type: array
+                items: { $ref: '#/components/schemas/MatchCandidate' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { $ref: '#/components/responses/DatabaseRequired' }
+  /v1/ws:
     get:
       operationId: websocket
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
       responses:
-        '101': { description: WebSocket upgrade }
+        '101': { description: Tenant-filtered WebSocket upgrade. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TenantId:
+      in: header
+      name: X-Eal-Tenant-Id
+      required: true
+      description: >-
+        Development contract until Shared Auth claim validation is wired. The
+        production runtime remains blocked while this compatibility header exists.
+      schema: { type: string, format: uuid }
   schemas:
-    AlertRule:
-      $ref: './schemas/alert_rule.json'
-    CreateAlertRule:
+    ApiError:
       type: object
-      required: [title]
+      additionalProperties: false
+      required: [code, message]
       properties:
-        title: { type: string, minLength: 1, maxLength: 256 }
-        summary: { type: string, maxLength: 4000 }
+        code: { type: string }
+        message: { type: string }
+        details: {}
+    CreateSourcePolicy:
+      $ref: './schemas/source_policy.json'
+    SourcePolicyRecord:
+      allOf:
+        - $ref: './schemas/source_policy.json'
+        - type: object
+          required: [id, tenant_id, created_at, updated_at]
+          properties:
+            id: { type: string, format: uuid }
+            tenant_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    PageIngestRequest:
+      $ref: './schemas/page_ingest.json'
+    PageRevision:
+      type: object
+      additionalProperties: false
+      required:
+        - page_id
+        - revision_id
+        - embedding_id
+        - source_id
+        - tenant_id
+        - canonical_url
+        - content_sha256
+        - changed
+        - fetched_at
+      properties:
+        page_id: { type: string, format: uuid }
+        revision_id: { type: string, format: uuid }
+        embedding_id: { type: string, format: uuid }
+        source_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        canonical_url: { type: string, format: uri }
+        content_sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+        changed: { type: boolean }
+        fetched_at: { type: string, format: date-time }
+    EmbeddingSearchRequest:
+      $ref: './schemas/embedding_search.json'
+    SearchCursor:
+      type: object
+      additionalProperties: false
+      required: [distance, embedding_id]
+      properties:
+        distance: { type: number }
+        embedding_id: { type: string, format: uuid }
+    EmbeddingSearchHit:
+      type: object
+      additionalProperties: false
+      required:
+        - embedding_id
+        - revision_id
+        - page_id
+        - source_id
+        - canonical_url
+        - excerpt
+        - similarity
+        - distance
+        - model
+        - model_version
+        - dimensions
+        - normalization
+        - fetched_at
+      properties:
+        embedding_id: { type: string, format: uuid }
+        revision_id: { type: string, format: uuid }
+        page_id: { type: string, format: uuid }
+        source_id: { type: string, format: uuid }
+        canonical_url: { type: string, format: uri }
+        title: { type: [string, 'null'] }
+        excerpt: { type: string }
+        similarity: { type: number }
+        distance: { type: number }
+        model: { type: string }
+        model_version: { type: string }
+        dimensions: { type: integer }
+        normalization: { type: string, enum: [none, l2, unit_length] }
+        fetched_at: { type: string, format: date-time }
+    EmbeddingSearchResponse:
+      type: object
+      additionalProperties: false
+      required: [hits]
+      properties:
+        hits:
+          type: array
+          items: { $ref: '#/components/schemas/EmbeddingSearchHit' }
+        next_cursor:
+          oneOf:
+            - $ref: '#/components/schemas/SearchCursor'
+            - type: 'null'
+    MatchCandidate:
+      $ref: './schemas/match_candidate.json'
+  responses:
+    Unauthorized:
+      description: Missing or invalid tenant/authentication context.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    NotFound:
+      description: Tenant-owned resource was not found.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    Conflict:
+      description: Resource already exists.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    ValidationError:
+      description: Request failed validation or source policy checks.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+    DatabaseRequired:
+      description: Durable database is required for this route.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }

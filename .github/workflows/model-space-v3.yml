@@ -1,0 +1,31 @@
+name: model-space-v3
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-space-v3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Verify TypeSpec and JSON Schema peer invariants
+        run: node scripts/verify-model-space-v3.mjs
+      - name: Compile Microsoft TypeSpec
+        run: >-
+          npx --yes --package @typespec/compiler@1.15.0
+          tsp compile embedding-contract/model-space-v3.tsp --no-emit

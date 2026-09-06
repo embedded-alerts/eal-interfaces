@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://embedded-alerts.github.io/schemas/source_policy.json",
+  "title": "SourcePolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "root_url",
+    "allowed_hosts",
+    "allowed_path_prefixes",
+    "discovery_modes",
+    "crawl_interval_seconds",
+    "max_depth",
+    "max_pages_per_run",
+    "obey_robots",
+    "enabled"
+  ],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "root_url": { "type": "string", "format": "uri", "pattern": "^https?://" },
+    "allowed_hosts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(?!localhost$)(?!.*[/*@:\\s])[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+      }
+    },
+    "allowed_path_prefixes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^/[^#]*$" }
+    },
+    "include_subdomains": { "type": "boolean", "default": false },
+    "discovery_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["manual", "sitemap", "rss", "atom", "external_index_candidates"]
+      }
+    },
+    "crawl_interval_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 604800,
+      "default": 900
+    },
+    "max_depth": { "type": "integer", "minimum": 0, "maximum": 16, "default": 3 },
+    "max_pages_per_run": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": 1000
+    },
+    "obey_robots": { "const": true, "default": true },
+    "enabled": { "type": "boolean", "default": true }
+  }
+}
