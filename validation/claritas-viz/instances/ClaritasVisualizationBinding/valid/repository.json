@@ -1,0 +1,1 @@
+{"provider":"claritas-viz","purposes":["semantic-topology"],"capabilities":["network-layout"],"runtimes":["rust","typescript","dart"],"generatedWitnessOnly":true}
