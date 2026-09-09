@@ -1,0 +1,1 @@
+{"provider":"claritas-viz","purposes":["semantic-topology"],"capabilities":["infer-semantic-edges"],"runtimes":["rust"],"generatedWitnessOnly":true}
