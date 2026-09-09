@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Compare independently authored Claritas binding authorities
-        uses: ORESoftware/typespec-json-schema-validator@158677d3bb94b5a301b592244fc51981a13a8df7
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           typespec: validation/claritas-viz/typespec/main.tsp
           schema: validation/claritas-viz/json-schema/contract.schema.json
@@ -38,8 +38,8 @@ jobs:
           contract_ir: tmp/claritas-viz-contract/contract-ir.json
           output_dir: tmp/claritas-viz-contract/generated
           max_probes: '64'
-      - name: Require complete current Claritas contract evidence
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@158677d3bb94b5a301b592244fc51981a13a8df7
+      - name: Require complete current Claritas contract evidence and nineteen refusals
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           contract_ir: tmp/claritas-viz-contract/contract-ir.json
           report: tmp/claritas-viz-contract/report.json
