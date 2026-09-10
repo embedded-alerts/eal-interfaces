@@ -1,0 +1,11 @@
+{
+  "schema": "ores.typespec-json-schema-validator.mapping/v1",
+  "declarations": [],
+  "ignore": {
+    "typespec": [
+      "EmbeddedAlerts.Validation.PublicValidationContract"
+    ],
+    "generated": [],
+    "authored": []
+  }
+}

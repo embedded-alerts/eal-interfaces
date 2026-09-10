@@ -19,18 +19,47 @@ permissions:
 jobs:
   parity:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          repository: ORESoftware/api-docs
-          ref: c75c3924847a42d8d2854eb78c85f330ea726bef
-          path: .deps/api-docs
-          persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - name: Verify exact contract revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22.16.0"
-      - run: node .deps/api-docs/tools/validation-parity/parity-tool.mjs --self-test
-      - run: node .deps/api-docs/tools/validation-parity/parity-tool.mjs --check
+      - name: Admit independent TypeSpec and JSON Schema authorities with TJSV
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
+        with:
+          typespec: validation/typespec/validation.tsp
+          schema: validation/public-contracts.v1.json
+          mapping: validation/parity/tjsv.mapping.json
+          report: tmp/validation-parity-v2/tjsv-report.json
+          sarif: tmp/validation-parity-v2/tjsv-report.sarif
+          contract_ir: tmp/validation-parity-v2/contract-ir.json
+          output_dir: tmp/validation-parity-v2/generated
+          max_probes: '64'
+      - name: Preserve both authored authorities
+        if: ${{ always() }}
+        run: git diff --exit-code -- validation/typespec/validation.tsp validation/public-contracts.v1.json
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ORESoftware/api-docs
+          ref: 808333e6de8ad6e7fc4f554aacb4a8a7eb1dd7a8
+          path: .deps/api-docs
+          persist-credentials: false
+      - name: Self-test downstream parity/codegen tooling
+        run: node .deps/api-docs/tools/validation-parity/parity-tool.mjs --self-test
+      - name: Verify downstream generated-language and route-binding parity
+        run: node .deps/api-docs/tools/validation-parity/parity-tool.mjs --check
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ always() }}
+        with:
+          name: validation-parity-v2-${{ github.event.pull_request.head.sha || github.sha }}
+          path: tmp/validation-parity-v2/
+          if-no-files-found: error
+          retention-days: 14
