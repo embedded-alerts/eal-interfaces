@@ -37,6 +37,7 @@ jobs:
         with:
           typespec: validation/typespec/validation.tsp
           schema: validation/public-contracts.v1.json
+          mapping: validation/parity/tjsv.mapping.json
           report: tmp/validation-parity-v2/tjsv-report.json
           sarif: tmp/validation-parity-v2/tjsv-report.sarif
           contract_ir: tmp/validation-parity-v2/contract-ir.json
