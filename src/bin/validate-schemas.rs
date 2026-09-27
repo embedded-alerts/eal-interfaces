@@ -20,11 +20,11 @@ struct Problem {
 }
 
 fn main() {
-    let mut format = "text";
+    let mut format = String::from("text");
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         if arg == "--format" {
-            format = args.next().as_deref().unwrap_or("text");
+            format = args.next().unwrap_or_else(|| String::from("text"));
         }
     }
 
@@ -36,7 +36,7 @@ fn main() {
         .count();
 
     for problem in &problems {
-        match format {
+        match format.as_str() {
             "github" => {
                 let level = match problem.severity {
                     Severity::Warning => "warning",
