@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeMap,
     env, fs,
     path::{Path, PathBuf},
 };
@@ -142,7 +142,7 @@ fn validate_repo(root: &Path) -> (Vec<PathBuf>, Vec<Problem>) {
         validate_schema_node(&document, &rel, path, &document, &mut problems);
     }
 
-    (files, problems)
+    return (files, problems);
 }
 
 fn find_schema_files(root: &Path) -> Vec<PathBuf> {
@@ -154,7 +154,7 @@ fn find_schema_files(root: &Path) -> Vec<PathBuf> {
         }
     }
     files.sort();
-    files
+    return files;
 }
 
 fn walk_directory(directory: &Path, files: &mut Vec<PathBuf>) {
@@ -261,7 +261,13 @@ fn validate_schema_node(
 }
 
 fn validate_keyword_shapes(object: &Map<String, Value>, rel: &str, problems: &mut Vec<Problem>) {
-    for keyword in ["properties", "$defs", "definitions", "dependentSchemas", "patternProperties"] {
+    for keyword in [
+        "properties",
+        "$defs",
+        "definitions",
+        "dependentSchemas",
+        "patternProperties",
+    ] {
         if let Some(value) = object.get(keyword) {
             if !value.is_object() {
                 problems.push(Problem {
@@ -272,7 +278,14 @@ fn validate_keyword_shapes(object: &Map<String, Value>, rel: &str, problems: &mu
             }
         }
     }
-    for keyword in ["required", "enum", "allOf", "anyOf", "oneOf", "prefixItems"] {
+    for keyword in [
+        "required",
+        "enum",
+        "allOf",
+        "anyOf",
+        "oneOf",
+        "prefixItems",
+    ] {
         if let Some(value) = object.get(keyword) {
             if !value.is_array() {
                 problems.push(Problem {
@@ -347,14 +360,15 @@ fn resolve_json_pointer<'a>(root: &'a Value, fragment: &str) -> Option<&'a Value
             _ => return None,
         };
     }
-    Some(current)
+    return Some(current);
 }
 
 fn relative_display(root: &Path, path: &Path) -> String {
-    path.strip_prefix(root)
+    return path
+        .strip_prefix(root)
         .unwrap_or(path)
         .to_string_lossy()
-        .replace('\\', "/")
+        .replace('\\', "/");
 }
 
 #[cfg(test)]
