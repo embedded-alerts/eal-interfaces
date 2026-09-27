@@ -20,13 +20,15 @@ jobs:
   schemas:
     name: JSON Schemas
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          python-version: '3.11'
-      - name: Validate with the bundled structural checks
-        run: python3 scripts/validate_schemas.py --format github
+          persist-credentials: false
+      - name: Test the Rust structural validator
+        run: cargo test --bin validate-schemas
+      - name: Validate with the Rust structural checks
+        run: cargo run --quiet --bin validate-schemas -- --format github
       - name: Validate against the JSON Schema meta-schema
         run: |
           python3 -m pip install --quiet jsonschema
