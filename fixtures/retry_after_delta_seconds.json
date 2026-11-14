@@ -1,0 +1,67 @@
+{
+  "version": "eal.retry-after.delta-seconds.v1",
+  "maxDelaySeconds": 3600,
+  "description": "Reference HTTP Retry-After delta-seconds interpretation. Date-form values and malformed values are not interpreted without a trusted clock.",
+  "cases": [
+    {
+      "header": "0",
+      "delaySeconds": 0
+    },
+    {
+      "header": "90",
+      "delaySeconds": 90
+    },
+    {
+      "header": " 25 ",
+      "delaySeconds": 25
+    },
+    {
+      "header": "7200",
+      "delaySeconds": 3600
+    },
+    {
+      "header": "9007199254740992",
+      "delaySeconds": 3600
+    },
+    {
+      "header": "18446744073709551615",
+      "delaySeconds": 3600
+    },
+    {
+      "header": "18446744073709551616",
+      "delaySeconds": null
+    },
+    {
+      "header": "0000000000000000000000000001",
+      "delaySeconds": 1
+    },
+    {
+      "header": "999999999999999999999999",
+      "delaySeconds": null
+    },
+    {
+      "header": "-1",
+      "delaySeconds": null
+    },
+    {
+      "header": "1.5",
+      "delaySeconds": null
+    },
+    {
+      "header": "5s",
+      "delaySeconds": null
+    },
+    {
+      "header": "Wed, 21 Oct 2015 07:28:00 GMT",
+      "delaySeconds": null
+    },
+    {
+      "header": "",
+      "delaySeconds": null
+    },
+    {
+      "header": " ",
+      "delaySeconds": null
+    }
+  ]
+}
