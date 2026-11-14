@@ -20,6 +20,22 @@
       "delaySeconds": 3600
     },
     {
+      "header": "9007199254740992",
+      "delaySeconds": 3600
+    },
+    {
+      "header": "18446744073709551615",
+      "delaySeconds": 3600
+    },
+    {
+      "header": "18446744073709551616",
+      "delaySeconds": null
+    },
+    {
+      "header": "0000000000000000000000000001",
+      "delaySeconds": 1
+    },
+    {
       "header": "999999999999999999999999",
       "delaySeconds": null
     },
